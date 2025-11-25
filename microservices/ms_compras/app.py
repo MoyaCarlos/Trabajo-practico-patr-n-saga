@@ -1,10 +1,13 @@
 # Compras Flask application
 from flask import Flask, jsonify, request  # ← request para recibir JSON
 import logging
-import random
-import time
+import sys
+import os
 from datetime import datetime
-import uuid
+
+# Agregar el directorio padre al path para importar common
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from common.transaction_helper import simular_latencia, tiene_exito, generar_id
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("__name__")
@@ -28,11 +31,12 @@ def crear_transaccion():
     producto = data.get("producto")
     
     logger.info(f'Registrando compra para usuario_id: {usuario_id} con producto: {producto}')
-    # Simular latencia
-    time.sleep(random.uniform(0.1,0.5))
+    
+    # Simular latencia usando helper
+    simular_latencia()
 
-    # 3. Simular éxito o fallo aleatorio (50/50)
-    if random.random() < 0.5:
+    # Simular éxito o fallo aleatorio usando helper
+    if not tiene_exito():
         logger.warning(f'Fallo al registrar compra para usuario_id: {usuario_id}')
         # FALLO - No se pudo registrar
         return jsonify({
@@ -40,8 +44,8 @@ def crear_transaccion():
             "error": "No se pudo registrar la compra"
         }), 409
     
-    # ÉXITO - Registrar compra
-    compra_id = str(uuid.uuid4())
+    # ÉXITO - Registrar compra usando helper para generar ID
+    compra_id = generar_id()
     compras_db[compra_id] = {
         "compra_id": compra_id,
         "usuario_id": usuario_id,
@@ -61,7 +65,7 @@ def compensar_compra():
     compra_id = data.get('compra_id')
     
     if not compra_id:
-        logger.warning("⚠️  Compensación llamada sin compra_id")
+        logger.warning("Compensación llamada sin compra_id")
         return jsonify({
             "success": True,
             "mensaje": "No hay compra para compensar"
@@ -70,9 +74,9 @@ def compensar_compra():
     # Buscar y cancelar la compra
     if compra_id in compras_db:
         compras_db[compra_id]['estado'] = 'cancelada'
-        logger.info(f"↩️  Compra {compra_id} cancelada exitosamente")
+        logger.info(f"Compra {compra_id} cancelada exitosamente")
     else:
-        logger.warning(f"⚠️  Compra {compra_id} no encontrada (quizás ya fue cancelada)")
+        logger.warning(f"Compra {compra_id} no encontrada (quizás ya fue cancelada)")
  
     
     return jsonify({
