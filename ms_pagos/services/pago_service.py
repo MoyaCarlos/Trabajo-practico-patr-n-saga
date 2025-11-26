@@ -6,12 +6,13 @@ from datetime import datetime
 from typing import Dict, Optional, Tuple
 import sys
 import os
+import threading
 
 # Agregar el directorio padre al path para importar common
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from common.transaction_helper import simular_latencia, tiene_exito, generar_id
 
-from config import (
+from ..config import (
     ESTADO_APROBADO, 
     ESTADO_REEMBOLSADO,
     MSG_PAGO_EXITOSO,
@@ -29,6 +30,7 @@ class PagoService:
     
     def __init__(self):
         self.pagos_db: Dict[str, Dict] = {}
+        self._lock = threading.Lock()  # Lock para operaciones concurrentes
     
     def procesar_pago(self, usuario_id: str, monto: float, compra_id: str) -> Tuple[Dict, int]:
         """
@@ -56,15 +58,16 @@ class PagoService:
             }, 409
         
         # ÉXITO - Registrar pago
-        pago_id = generar_id()
-        self.pagos_db[pago_id] = {
-            "pago_id": pago_id,
-            "usuario_id": usuario_id,
-            "monto": monto,
-            "compra_id": compra_id,
-            "estado": ESTADO_APROBADO,
-            "fecha": datetime.now().isoformat()
-        }
+        with self._lock:
+            pago_id = generar_id()
+            self.pagos_db[pago_id] = {
+                "pago_id": pago_id,
+                "usuario_id": usuario_id,
+                "monto": monto,
+                "compra_id": compra_id,
+                "estado": ESTADO_APROBADO,
+                "fecha": datetime.now().isoformat()
+            }
         
         logger.info(f'✅ Pago procesado exitosamente: {self.pagos_db[pago_id]}')
         
@@ -92,11 +95,12 @@ class PagoService:
             }, 200
         
         # Buscar y reembolsar el pago
-        if pago_id in self.pagos_db:
-            self.pagos_db[pago_id]['estado'] = ESTADO_REEMBOLSADO
-            logger.info(f"↩️  Pago {pago_id} reembolsado exitosamente")
-        else:
-            logger.warning(f"⚠️  Pago {pago_id} no encontrado (quizás ya fue reembolsado)")
+        with self._lock:
+            if pago_id in self.pagos_db:
+                self.pagos_db[pago_id]['estado'] = ESTADO_REEMBOLSADO
+                logger.info(f"↩️  Pago {pago_id} reembolsado exitosamente")
+            else:
+                logger.warning(f"⚠️  Pago {pago_id} no encontrado (quizás ya fue reembolsado)")
         
         return {
             "success": True,

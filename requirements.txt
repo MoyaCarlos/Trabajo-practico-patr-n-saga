@@ -4,3 +4,6 @@ requests==2.32.3
 
 # PostgreSQL (opcional - para durabilidad)
 psycopg2-binary==2.9.10
+
+# Servidor WSGI de producción
+granian>=1.0.0

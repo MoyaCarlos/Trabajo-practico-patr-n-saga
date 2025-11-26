@@ -6,7 +6,7 @@ import requests
 import time
 from typing import Dict, Tuple, List, Optional
 
-from config import (
+from .config import (
     MS_CATALOGO_URL,
     MS_COMPRAS_URL,
     MS_PAGOS_URL,

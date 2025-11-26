@@ -8,4 +8,7 @@ dependencies = [
     "flask==3.1.2",
     "pyrefly==0.38.2",
     "python-dotenv==1.1.1",
+    "granian>=1.0.0",
+    "psycopg2-binary>=2.9.9",
+    "requests>=2.32.0",
 ]

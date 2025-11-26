@@ -3,8 +3,8 @@ from flask import Flask
 import logging
 
 
-from routes import compras_bp
-from config import PORT, HOST, SERVICE_NAME, LOG_LEVEL
+from .routes import compras_bp
+from .config import PORT, HOST, SERVICE_NAME, LOG_LEVEL
 
 # Configurar logging
 logging.basicConfig(
@@ -29,8 +29,12 @@ def create_app() -> Flask:
 
     return app
 
+
+# Exportar app para Granian
+app = create_app()
+
+
 if __name__ == '__main__':
-    app = create_app()
     
     logger.info(f"🚀 Iniciando {SERVICE_NAME} en {HOST}:{PORT}...")
     logger.info(f"✅ Servicio listo - Health check: http://localhost:{PORT}/health")

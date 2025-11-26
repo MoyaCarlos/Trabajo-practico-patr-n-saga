@@ -3,8 +3,8 @@ Definición de rutas/endpoints para el microservicio de pagos
 """
 from flask import Blueprint, jsonify, request
 from typing import Tuple
-from services.pago_service import PagoService
-from config import SERVICE_NAME
+from .services.pago_service import PagoService
+from .config import SERVICE_NAME
 
 # Crear blueprint para las rutas
 pagos_bp = Blueprint('pagos', __name__)

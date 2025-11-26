@@ -3,8 +3,8 @@ Rutas del orquestador
 """
 from flask import Blueprint, jsonify, request
 from typing import Tuple
-from saga_service import SagaOrchestrator
-from config import SERVICE_NAME
+from .saga_service import SagaOrchestrator
+from .config import SERVICE_NAME
 
 orchestrator_bp = Blueprint('orchestrator', __name__)
 saga_orchestrator = SagaOrchestrator()

@@ -5,13 +5,14 @@ import logging
 from typing import Dict, Optional, Tuple
 import sys
 import os
+import threading
 
 # Importar helpers
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from common.transaction_helper import simular_latencia, generar_id
 
 # Importar configuración
-from config import (
+from ..config import (
     ESTADO_RESERVADO,
     ESTADO_CANCELADA,
     MSG_RESERVA_EXITOSA,
@@ -32,6 +33,7 @@ class InventarioService:
         # Crear copia del inventario inicial
         self.inventario: Dict[str, Dict] = {k: v.copy() for k, v in INVENTARIO_INICIAL.items()}
         self.reservas_db: Dict[str, Dict] = {}
+        self._lock = threading.Lock()  # Lock para operaciones concurrentes (CRÍTICO para stock)
     
     def obtener_inventario(self) -> Tuple[Dict, int]:
         """
@@ -81,19 +83,20 @@ class InventarioService:
             }, 409
         
         # ÉXITO - Reservar stock
-        reserva_id = generar_id()
-        
-        # Actualizar inventario
-        self.inventario[producto_key]['stock'] -= cantidad
-        self.inventario[producto_key]['reservado'] += cantidad
-        
-        # Guardar reserva
-        self.reservas_db[reserva_id] = {
-            "reserva_id": reserva_id,
-            "producto": producto_key,
-            "cantidad": cantidad,
-            "estado": ESTADO_RESERVADO
-        }
+        with self._lock:
+            reserva_id = generar_id()
+            
+            # Actualizar inventario
+            self.inventario[producto_key]['stock'] -= cantidad
+            self.inventario[producto_key]['reservado'] += cantidad
+            
+            # Guardar reserva
+            self.reservas_db[reserva_id] = {
+                "reserva_id": reserva_id,
+                "producto": producto_key,
+                "cantidad": cantidad,
+                "estado": ESTADO_RESERVADO
+            }
         
         logger.info(f"✅ Stock reservado: {self.reservas_db[reserva_id]}")
         logger.info(f"📊 Inventario actualizado - {producto_key}: stock={self.inventario[producto_key]['stock']}, reservado={self.inventario[producto_key]['reservado']}")
@@ -122,22 +125,23 @@ class InventarioService:
             }, 200
         
         # Buscar y liberar la reserva
-        if reserva_id in self.reservas_db:
-            reserva = self.reservas_db[reserva_id]
-            producto = reserva['producto']
-            cantidad = reserva['cantidad']
-            
-            # Actualizar inventario (devolver stock)
-            self.inventario[producto]['stock'] += cantidad
-            self.inventario[producto]['reservado'] -= cantidad
-            
-            # Marcar reserva como cancelada
-            reserva['estado'] = ESTADO_CANCELADA
-            
-            logger.info(f"↩️  Reserva {reserva_id} cancelada exitosamente")
-            logger.info(f"📊 Inventario actualizado - {producto}: stock={self.inventario[producto]['stock']}, reservado={self.inventario[producto]['reservado']}")
-        else:
-            logger.warning(f"⚠️  Reserva {reserva_id} no encontrada (quizás ya fue cancelada)")
+        with self._lock:
+            if reserva_id in self.reservas_db:
+                reserva = self.reservas_db[reserva_id]
+                producto = reserva['producto']
+                cantidad = reserva['cantidad']
+                
+                # Actualizar inventario (devolver stock)
+                self.inventario[producto]['stock'] += cantidad
+                self.inventario[producto]['reservado'] -= cantidad
+                
+                # Marcar reserva como cancelada
+                reserva['estado'] = ESTADO_CANCELADA
+                
+                logger.info(f"↩️  Reserva {reserva_id} cancelada exitosamente")
+                logger.info(f"📊 Inventario actualizado - {producto}: stock={self.inventario[producto]['stock']}, reservado={self.inventario[producto]['reservado']}")
+            else:
+                logger.warning(f"⚠️  Reserva {reserva_id} no encontrada (quizás ya fue cancelada)")
         
         return {
             "success": True,
