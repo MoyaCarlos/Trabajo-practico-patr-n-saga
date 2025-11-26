@@ -41,7 +41,7 @@ class ComprasService:
 
         simular_latencia()
 
-        if not tiene_exito(PROBABILIDAD_EXITO):
+        if not tiene_exito(0.5):
             logger.warning(f'Fallo al registrar compra para usuario_id: {usuario_id}')
             return {
                 "success": False,

@@ -48,31 +48,33 @@ class InventarioService:
         Reserva stock de un producto.
         
         Args:
-            producto: Nombre del producto (se convertirá a mayúsculas)
+            producto: Nombre del producto (se convertirá a mayúsculas y se extraerá la primera palabra)
             cantidad: Cantidad a reservar (default: 1)
             
         Returns:
             Tupla con (respuesta_dict, codigo_http)
         """
-        producto = producto.upper()
-        logger.info(f"📦 Intentando reservar {cantidad}x {producto}")
+        # Extraer primera palabra y convertir a mayúsculas
+        # "Laptop Gamer" -> "LAPTOP", "Monitor 27 pulgadas" -> "MONITOR"
+        producto_key = producto.split()[0].upper()
+        logger.info(f"📦 Intentando reservar {cantidad}x {producto} (key: {producto_key})")
         
         # Simular latencia
         simular_latencia()
         
         # Verificar si el producto existe
-        if producto not in self.inventario:
-            logger.warning(f"❌ Producto {producto} no encontrado")
+        if producto_key not in self.inventario:
+            logger.warning(f"❌ Producto {producto_key} no encontrado")
             return {
                 "success": False,
                 "error": MSG_PRODUCTO_NO_ENCONTRADO
             }, 409
         
         # Verificar si hay stock suficiente
-        stock_disponible = self.inventario[producto]['stock']
+        stock_disponible = self.inventario[producto_key]['stock']
         
         if stock_disponible < cantidad:
-            logger.warning(f"❌ Stock insuficiente para {producto}. Disponible: {stock_disponible}, Requerido: {cantidad}")
+            logger.warning(f"❌ Stock insuficiente para {producto_key}. Disponible: {stock_disponible}, Requerido: {cantidad}")
             return {
                 "success": False,
                 "error": f"{MSG_STOCK_INSUFICIENTE}. Disponible: {stock_disponible}"
@@ -82,19 +84,19 @@ class InventarioService:
         reserva_id = generar_id()
         
         # Actualizar inventario
-        self.inventario[producto]['stock'] -= cantidad
-        self.inventario[producto]['reservado'] += cantidad
+        self.inventario[producto_key]['stock'] -= cantidad
+        self.inventario[producto_key]['reservado'] += cantidad
         
         # Guardar reserva
         self.reservas_db[reserva_id] = {
             "reserva_id": reserva_id,
-            "producto": producto,
+            "producto": producto_key,
             "cantidad": cantidad,
             "estado": ESTADO_RESERVADO
         }
         
         logger.info(f"✅ Stock reservado: {self.reservas_db[reserva_id]}")
-        logger.info(f"📊 Inventario actualizado - {producto}: stock={self.inventario[producto]['stock']}, reservado={self.inventario[producto]['reservado']}")
+        logger.info(f"📊 Inventario actualizado - {producto_key}: stock={self.inventario[producto_key]['stock']}, reservado={self.inventario[producto_key]['reservado']}")
         
         return {
             "success": True,

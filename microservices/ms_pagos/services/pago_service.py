@@ -48,7 +48,7 @@ class PagoService:
         simular_latencia()
         
         # Simular éxito o fallo aleatorio
-        if not tiene_exito(PROBABILIDAD_EXITO):
+        if not tiene_exito(0.5):
             logger.warning(f'❌ Fallo al procesar pago para usuario {usuario_id}')
             return {
                 "success": False,

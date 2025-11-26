@@ -27,5 +27,7 @@ ESTADO_CANCELADA = "cancelada"
 INVENTARIO_INICIAL = {
     "LAPTOP": {"stock": 5, "reservado": 0},
     "MOUSE": {"stock": 10, "reservado": 0},
-    "TECLADO": {"stock": 3, "reservado": 0}
+    "TECLADO": {"stock": 3, "reservado": 0},
+    "AURICULARES": {"stock": 15, "reservado": 0},
+    "MONITOR": {"stock": 8, "reservado": 0}
 }
